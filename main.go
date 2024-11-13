@@ -91,7 +91,7 @@ func checkServerStat(stat serverStat) {
 	//Memory usage too high: N%, где N — текущее процентное значение.
 	memUsagePercent := int(math.Round(float64(stat.MemBytesUsed) / float64(stat.MemBytesAvailable) * 100))
 	if memUsagePercent >= 80 {
-		fmt.Printf("Memory usage too high: %d%% \n", memUsagePercent)
+		fmt.Printf("Memory usage too high: %d%%\n", memUsagePercent)
 	}
 
 	//При превышении 90% от имеющегося объёма необходимо вывести в консоль сообщение
