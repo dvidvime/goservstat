@@ -144,7 +144,7 @@ func main() {
 			continue
 		}
 
-		fmt.Printf("Parsed serverStat: %+v\n", stat)
+		//fmt.Printf("Parsed serverStat: %+v\n", stat)
 		checkServerStat(stat)
 		return
 	}
