@@ -110,49 +110,46 @@ func checkServerStat(stat serverStat) {
 }
 
 func main() {
-	for {
-		const maxRetries = 3
-		var err error
-		var response *http.Response
+	const maxRetries = 3
+	var err error
+	var response *http.Response
 
-		for attempts := 0; attempts < maxRetries; attempts++ {
-			response, err = http.Get("http://srv.msk01.gigacorp.local/_stats")
-			//response, err = http.Get("http://localhost:8080/_stats")
-			if err != nil {
-				fmt.Println("Error:", err)
-				time.Sleep(2 * time.Second)
-				continue
-			}
-
-			if response.StatusCode != http.StatusOK {
-				fmt.Printf("Received non-200 response: %d\n", response.StatusCode)
-				response.Body.Close()
-				time.Sleep(2 * time.Second)
-				continue
-			}
-
-			body, err := io.ReadAll(response.Body)
-			response.Body.Close()
-			if err != nil {
-				fmt.Println("Error reading response body:", err)
-				time.Sleep(2 * time.Second)
-				continue
-			}
-
-			stat, err := parseServerStat(body)
-			if err != nil {
-				fmt.Println("Error parsing server statistics:", err)
-				time.Sleep(2 * time.Second)
-				continue
-			}
-
-			//fmt.Printf("Parsed serverStat: %+v\n", stat)
-			checkServerStat(stat)
-			time.Sleep(10 * time.Second)
-			return
+	for attempts := 0; attempts < maxRetries; attempts++ {
+		//response, err = http.Get("http://srv.msk01.gigacorp.local/_stats")
+		response, err = http.Get("http://localhost:8080/_stats")
+		if err != nil {
+			fmt.Println("Error:", err)
+			time.Sleep(2 * time.Second)
+			continue
 		}
 
-		fmt.Println("Unable to fetch server statistic")
-		break
+		if response.StatusCode != http.StatusOK {
+			fmt.Printf("Received non-200 response: %d\n", response.StatusCode)
+			response.Body.Close()
+			time.Sleep(2 * time.Second)
+			continue
+		}
+
+		body, err := io.ReadAll(response.Body)
+		response.Body.Close()
+		if err != nil {
+			fmt.Println("Error reading response body:", err)
+			time.Sleep(2 * time.Second)
+			continue
+		}
+
+		stat, err := parseServerStat(body)
+		if err != nil {
+			fmt.Println("Error parsing server statistics:", err)
+			time.Sleep(2 * time.Second)
+			continue
+		}
+
+		checkServerStat(stat)
+		attempts = 0
+		time.Sleep(10 * time.Second)
+		continue
 	}
+
+	fmt.Println("Unable to fetch server statistic")
 }
