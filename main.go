@@ -83,71 +83,76 @@ func parseServerStat(input []byte) (serverStat, error) {
 func checkServerStat(stat serverStat) {
 	//При превышении значения 30 необходимо вывести в консоль сообщение
 	//Load Average is too high: N, где N — текущее значение.
-	if stat.CurrentLA > 30 {
+	if stat.CurrentLA >= 30 {
 		fmt.Printf("Load Average is too high: %d\n", stat.CurrentLA)
 	}
 
 	//При превышении 80% от имеющегося объёма необходимо вывести в консоль сообщение
 	//Memory usage too high: N%, где N — текущее процентное значение.
 	memUsagePercent := int(math.Round(float64(stat.MemBytesUsed) / float64(stat.MemBytesAvailable) * 100))
-	if memUsagePercent > 80 {
+	if memUsagePercent >= 80 {
 		fmt.Printf("Memory usage is too high: %d%% \n", memUsagePercent)
 	}
 
 	//При превышении 90% от имеющегося объёма необходимо вывести в консоль сообщение
 	//Free disk space is too low: N Mb left, где N — количество оставшихся свободных мегабайтов.
 	diskUsagePercent := int(math.Round(float64(stat.DiskBytesUsed) / float64(stat.DiskBytesAvailable) * 100))
-	if diskUsagePercent > 90 {
+	if diskUsagePercent >= 90 {
 		fmt.Printf("Free disk space is too low: %d Mb left\n", (stat.DiskBytesAvailable-stat.DiskBytesUsed)/unitMb)
 	}
 
 	//При превышении 90% от имеющейся пропускной способности вывести в консоль сообщение
 	//Network bandwidth usage high: N Mbit/s available, где N — размер свободной полосы в мегабитах в секунду.
 	netUsagePercent := int(math.Round(float64(stat.NetBandwidthUsed) / float64(stat.NetBandwidthAvailable) * 100))
-	if netUsagePercent > 90 {
+	if netUsagePercent >= 90 {
 		fmt.Printf("Network bandwidth usage high: %d Mbit/s available\n", (stat.NetBandwidthAvailable-stat.NetBandwidthUsed)/unitMbps)
 	}
 }
 
 func main() {
-	const maxRetries = 3
-	var err error
-	var response *http.Response
+	for {
+		const maxRetries = 3
+		var err error
+		var response *http.Response
 
-	for attempts := 0; attempts < maxRetries; attempts++ {
-		response, err = http.Get("http://srv.msk01.gigacorp.local/_stats")
-		if err != nil {
-			fmt.Println("Error:", err)
-			time.Sleep(2 * time.Second)
-			continue
-		}
+		for attempts := 0; attempts < maxRetries; attempts++ {
+			response, err = http.Get("http://srv.msk01.gigacorp.local/_stats")
+			//response, err = http.Get("http://localhost:8080/_stats")
+			if err != nil {
+				fmt.Println("Error:", err)
+				time.Sleep(2 * time.Second)
+				continue
+			}
 
-		if response.StatusCode != http.StatusOK {
-			fmt.Printf("Received non-200 response: %d\n", response.StatusCode)
+			if response.StatusCode != http.StatusOK {
+				fmt.Printf("Received non-200 response: %d\n", response.StatusCode)
+				response.Body.Close()
+				time.Sleep(2 * time.Second)
+				continue
+			}
+
+			body, err := io.ReadAll(response.Body)
 			response.Body.Close()
-			time.Sleep(2 * time.Second)
-			continue
+			if err != nil {
+				fmt.Println("Error reading response body:", err)
+				time.Sleep(2 * time.Second)
+				continue
+			}
+
+			stat, err := parseServerStat(body)
+			if err != nil {
+				fmt.Println("Error parsing server statistics:", err)
+				time.Sleep(2 * time.Second)
+				continue
+			}
+
+			//fmt.Printf("Parsed serverStat: %+v\n", stat)
+			checkServerStat(stat)
+			time.Sleep(10 * time.Second)
+			return
 		}
 
-		body, err := io.ReadAll(response.Body)
-		response.Body.Close()
-		if err != nil {
-			fmt.Println("Error reading response body:", err)
-			time.Sleep(2 * time.Second)
-			continue
-		}
-
-		stat, err := parseServerStat(body)
-		if err != nil {
-			fmt.Println("Error parsing server statistics:", err)
-			time.Sleep(2 * time.Second)
-			continue
-		}
-
-		//fmt.Printf("Parsed serverStat: %+v\n", stat)
-		checkServerStat(stat)
-		return
+		fmt.Println("Unable to fetch server statistic")
+		break
 	}
-
-	fmt.Println("Unable to fetch server statistic")
 }
