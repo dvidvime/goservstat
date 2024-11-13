@@ -115,8 +115,8 @@ func main() {
 	var response *http.Response
 
 	for attempts := 0; attempts < maxRetries; attempts++ {
-		//response, err = http.Get("http://srv.msk01.gigacorp.local/_stats")
-		response, err = http.Get("http://localhost:8080/_stats")
+		response, err = http.Get("http://srv.msk01.gigacorp.local/_stats")
+		//response, err = http.Get("http://localhost:8080/_stats")
 		if err != nil {
 			fmt.Println("Error:", err)
 			time.Sleep(2 * time.Second)
